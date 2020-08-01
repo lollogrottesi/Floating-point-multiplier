@@ -66,6 +66,7 @@ signal post_addition_E: std_logic_vector (7 downto 0);
 signal pre_mul_M_a, pre_mul_M_b: std_logic_vector (24 downto 0);
 signal post_mul_M: std_logic_vector (48 downto 0);
 signal prenormalization_M : std_logic_vector(47 downto 0);
+signal tmp_FP_z: std_logic_vector(30 downto 0); --Do not consider the sign.
 signal tmp_overflow: std_logic;
 begin
 --------------------------------Mantissa multiplication and exponent addition stage------------------------------------------------------------
@@ -82,8 +83,10 @@ Mantissa_multiplication_stage: Mantissa_multiplier port map (pre_mul_M_a, pre_mu
 -----------------------------------------------------------------------------------------------------------------------------------------------
 ---------------------------------------------PostNormalization stage---------------------------------------------------------------------------
 prenormalization_M <= post_mul_M(47 downto 0); --Drop sign.
-normalization_stage: postnormalization_multiplier_unit port map (post_addition_E, prenormalization_M, FP_z(22 downto 0), FP_z(30 downto 23));
+normalization_stage: postnormalization_multiplier_unit port map (post_addition_E, prenormalization_M, tmp_FP_z(22 downto 0), tmp_FP_z(30 downto 23));
 -----------------------------------------------------------------------------------------------------------------------------------------------
-FP_z (31) <= post_mul_M(48);
-overflow <= tmp_overflow;
+--If all zero prenormalization_M out is all zero.
+FP_z  <= (others=>'0') when prenormalization_M = "000000000000000000000000000000000000000000000000" else
+         post_mul_M(48)&tmp_FP_z;       --Sign&Exp&Mantissa.
+overflow <= tmp_overflow;               --Overflow when summing exponent.
 end Behavioral;
